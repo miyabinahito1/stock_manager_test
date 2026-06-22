@@ -52,7 +52,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Hiragino Sans','Noto Sans
 
 /* ===== カメラ ===== */
 .cam-box{position:relative;background:#0a0c15;border-radius:var(--rs);overflow:hidden;width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;}
-#vid,#vid2,#vid3,#vid4{width:100%;height:100%;object-fit:cover;display:none;}
+#vid,#vid2,#vid3,#vid4,#vid5{width:100%;height:100%;object-fit:cover;display:none;}
 .sl{display:none;position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,var(--ac),transparent);animation:sc 2s ease-in-out infinite;}
 @keyframes sc{0%,100%{top:12%}50%{top:82%}}
 .co{display:none;position:absolute;width:22px;height:22px;border-color:var(--ac);border-style:solid;border-width:0;}
@@ -299,7 +299,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 <div class="hdr">
   <span class="hdr-logo">📦</span>
   <span class="hdr-title">ストックマネージャー</span>
-  <span class="hdr-ver">v1.0</span>
+  <span class="hdr-ver">v3.0</span>
   <div class="dot" id="dot"></div>
   <button class="gear-btn" onclick="openGear()">⚙️</button>
 </div>
@@ -318,7 +318,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <div class="home-btn ac2" onclick="goTo('rt')"><span class="home-btn-ic">🟢</span><span class="home-btn-lbl">返却</span></div>
     <div class="home-btn wn"  onclick="goTo('rg')"><span class="home-btn-ic">➕</span><span class="home-btn-lbl">新規登録</span></div>
     <div class="home-btn pr" id="homeIvBtn" onclick="goTo('iv')" style="display:none"><span class="home-btn-ic">📋</span><span class="home-btn-lbl">棚卸し</span></div>
-    <div class="home-btn ng"  id="homeQrBtn" onclick="goTo('qr')" style="display:none"><span class="home-btn-ic">🏷️</span><span class="home-btn-lbl">棚QR発行</span></div>
+    <div class="home-btn ng"  id="homeQrBtn" onclick="goTo('qr')" style="display:none"><span class="home-btn-ic">🏷️</span><span class="home-btn-lbl" id="homeQrLbl">QR発行</span></div>
   </div>
 </div>
 
@@ -330,6 +330,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="card" id="co-step1">
     <div class="lbl"><span class="step-num" id="co-sn1">1</span>部品を選択して個数を入力</div>
     <input class="srch" type="text" id="co-search" placeholder="品番・品名・規格で検索" oninput="filterParts('co')">
+    <div class="notice" id="co-mode-note"></div>
     <div class="part-list" id="co-part-list"></div>
   </div>
   <!-- Step2: 棚スキャン -->
@@ -371,6 +372,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   <div class="card" id="rt-step1">
     <div class="lbl"><span class="step-num" id="rt-sn1">1</span>返却する部品を選択</div>
     <input class="srch" type="text" id="rt-search" placeholder="品番・品名・規格で検索" oninput="filterParts('rt')">
+    <div class="notice" id="rt-mode-note"></div>
     <div class="part-list" id="rt-part-list"></div>
   </div>
   <!-- Step2 -->
@@ -542,8 +544,8 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 <div class="wrap">
   <button class="back-btn" onclick="goHome()">← ホームへ</button>
   <div class="card">
-    <div class="lbl">🏷️ QRコード一覧</div>
-    <input class="qr-search" type="text" id="qr-search" placeholder="品番・品名・規格で絞り込み" oninput="filterQR()">
+    <div class="lbl" id="qr-title">🏷️ QRコード一覧</div>
+    <input class="qr-search" type="text" id="qr-search" placeholder="QRを絞り込み" oninput="filterQR()">
     <button class="gbtn gr no-print" onclick="window.print()">🖨️ PDF印刷（全件）</button>
     <button class="gbtn wn no-print" id="bulkIssueBtn" onclick="issueAllIds()">⚡ 未発行を一括発行</button>
     <div class="qr-list" id="qr-list">
@@ -630,12 +632,29 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
         </div>
         <label class="toggle-switch"><input type="checkbox" id="cfg-use-inv"><span class="toggle-slider"></span></label>
       </div>
-      <div class="toggle-row">
-        <div>
-          <div class="toggle-label">棚QR発行を使う</div>
-          <div class="toggle-sub">ホームにQR発行ボタンを表示する</div>
-        </div>
-        <label class="toggle-switch"><input type="checkbox" id="cfg-use-qr"><span class="toggle-slider"></span></label>
+      <div class="sec-lbl">QR運用モード</div>
+      <div class="shelf-mode-grid" id="cfg-qr-mode">
+        <button class="shelf-mode-btn" data-mode="item" onclick="selQrMode('item')">
+          <span class="shelf-mode-ic">🏷️</span>
+          <div class="shelf-mode-text">
+            <div class="shelf-mode-title">部品ごとにQRを発行する</div>
+            <div class="shelf-mode-desc">管理番号をQR化して部品ラベルとして使う</div>
+          </div>
+        </button>
+        <button class="shelf-mode-btn" data-mode="shelf" onclick="selQrMode('shelf')">
+          <span class="shelf-mode-ic">🏬</span>
+          <div class="shelf-mode-text">
+            <div class="shelf-mode-title">棚ごとにQRを発行する</div>
+            <div class="shelf-mode-desc">棚番号をQR化して棚ラベルとして使う</div>
+          </div>
+        </button>
+        <button class="shelf-mode-btn" data-mode="none" onclick="selQrMode('none')">
+          <span class="shelf-mode-ic">🚫</span>
+          <div class="shelf-mode-text">
+            <div class="shelf-mode-title">QRを使わない</div>
+            <div class="shelf-mode-desc">ホームのQR発行ボタンを非表示にする</div>
+          </div>
+        </button>
       </div>
     </div>
 
@@ -684,30 +703,30 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <button class="wiz-btn" onclick="wizNext(1)">次へ →</button>
   </div>
 
-  <!-- Step2: 棚管理 -->
+  <!-- Step2: QR運用モード -->
   <div class="wiz-step" id="ws2">
     <button class="wiz-back" onclick="wizBack(2)">← 戻る</button>
-    <div class="wiz-q">棚の管理方法を選択してください</div>
-    <div class="wiz-sub">後から変更できます。</div>
-    <div class="wiz-option" data-val="full" onclick="wizSelShelf('full')">
+    <div class="wiz-q">QRの使い方を選択してください</div>
+    <div class="wiz-sub">現場の持ち出し・返却の流れに合わせて選びます。後から変更できます。</div>
+    <div class="wiz-option" data-val="shelf" onclick="wizSelQrMode('shelf')">
       <span class="wiz-option-ic">🏬</span>
       <div class="wiz-option-text">
-        <div class="wiz-option-title">棚が複数あり、棚番号で照合する</div>
-        <div class="wiz-option-desc">棚QRをスキャンして場所を確認する</div>
+        <div class="wiz-option-title">棚QR管理</div>
+        <div class="wiz-option-desc">棚QRを読み、その棚の部品から選びます</div>
       </div>
     </div>
-    <div class="wiz-option" data-val="scanOnly" onclick="wizSelShelf('scanOnly')">
-      <span class="wiz-option-ic">📷</span>
+    <div class="wiz-option" data-val="item" onclick="wizSelQrMode('item')">
+      <span class="wiz-option-ic">🏷️</span>
       <div class="wiz-option-text">
-        <div class="wiz-option-title">棚は1つ、スキャンだけ確認する</div>
-        <div class="wiz-option-desc">番号照合はしないがスキャンステップは残す</div>
+        <div class="wiz-option-title">部品QR管理</div>
+        <div class="wiz-option-desc">部品や部品箱のQRで持ち出し・返却します</div>
       </div>
     </div>
-    <div class="wiz-option" data-val="off" onclick="wizSelShelf('off')">
+    <div class="wiz-option" data-val="none" onclick="wizSelQrMode('none')">
       <span class="wiz-option-ic">🚫</span>
       <div class="wiz-option-text">
-        <div class="wiz-option-title">棚管理しない</div>
-        <div class="wiz-option-desc">棚のスキャンステップ自体をなくす</div>
+        <div class="wiz-option-title">QRを使わない</div>
+        <div class="wiz-option-desc">検索で部品を選びます</div>
       </div>
     </div>
   </div>
@@ -780,7 +799,7 @@ var GAS = localStorage.getItem('gasUrl') || '';
 var config = {
   names: [], shelves: [], devices: [],
   shelfMode: 'off', useDevice: false,
-  useInventory: true, useQR: true
+  useInventory: true, qrMode: 'item'
 };
 var master = {};   // { ITEM-001: { item, desc, spec, stock, shelf, device } }
 
@@ -808,7 +827,7 @@ var allItems = [], filteredItems = [];
 
 // ウィザード状態
 var wizState = {
-  url: '', names: '', shelfMode: '', shelves: '', useDevice: '', devices: ''
+  url: '', names: '', qrMode: '', shelfMode: '', shelves: '', useDevice: '', devices: ''
 };
 
 // ============================================================
@@ -850,13 +869,15 @@ function applyConfig(cfg) {
   config.shelfMode   = cfg.shelfMode   || 'off';
   config.useDevice   = cfg.useDevice   === 'true';
   config.useInventory= cfg.useInventory === 'true' || cfg.useInventory === undefined;
-  config.useQR       = cfg.useQR       === 'true' || cfg.useQR       === undefined;
+  config.qrMode      = cfg.qrMode || (cfg.useQR === 'false' ? 'none' : 'item');
 }
 
 function applyUIConfig() {
   // ホームボタン
   document.getElementById('homeIvBtn').style.display = config.useInventory ? '' : 'none';
-  document.getElementById('homeQrBtn').style.display = config.useQR ? '' : 'none';
+  var qrEnabled = config.qrMode !== 'none';
+  document.getElementById('homeQrBtn').style.display = qrEnabled ? '' : 'none';
+  document.getElementById('homeQrLbl').textContent = config.qrMode === 'shelf' ? '棚QR発行' : '部品QR発行';
 
   // バナー
   var banner = document.getElementById('homeBanner');
@@ -1024,16 +1045,23 @@ var coName = '';
 
 function initCo() {
   coCart = {}; coShelf = ''; coName = '';
-  // Step表示リセット
   ['co-step1','co-step2','co-step3'].forEach(function(id,i) {
     document.getElementById(id).style.display = i === 0 ? '' : 'none';
   });
   document.getElementById('co-exec').className = 'exec-btn';
   document.getElementById('co-cart-btn').className = 'cart-badge';
   document.getElementById('co-err').className = 'err';
+  document.getElementById('co-shelf-err').className = 'err';
   document.getElementById('co-sn1').className = 'step-num';
   document.getElementById('co-sn2').className = 'step-num';
   document.getElementById('co-sn3').className = 'step-num';
+  setMoveModeUI('co');
+  if (config.qrMode === 'shelf') {
+    document.getElementById('co-step1').style.display = 'none';
+    document.getElementById('co-step2').style.display = '';
+    return;
+  }
+  if (config.qrMode === 'item') document.getElementById('co-step2').style.display = '';
   renderPartList('co');
 }
 
@@ -1045,14 +1073,17 @@ function renderPartList(prefix) {
   var kw  = (document.getElementById(prefix + '-search').value || '').toLowerCase().trim();
   var el  = document.getElementById(prefix + '-part-list');
   var cart = prefix === 'co' ? coCart : rtCart;
+  var shelf = prefix === 'co' ? coShelf : rtShelf;
   el.innerHTML = '';
   var items = Object.keys(master).filter(function(id) {
     var p = master[id];
+    if (config.qrMode === 'shelf' && shelf && p.shelf !== shelf) return false;
     if (!kw) return true;
     return (p.item + p.desc + p.spec + (p.device || '')).toLowerCase().indexOf(kw) >= 0;
   });
   if (!items.length) {
-    el.innerHTML = '<div style="color:var(--mt);font-size:13px;text-align:center;padding:20px">部品が見つかりません</div>';
+    el.innerHTML = '<div style="color:var(--mt);font-size:13px;text-align:center;padding:20px">' +
+      (config.qrMode === 'shelf' && shelf ? 'この棚に登録された部品がありません' : '部品が見つかりません') + '</div>';
     return;
   }
   items.forEach(function(id) {
@@ -1060,15 +1091,13 @@ function renderPartList(prefix) {
     var inCart = !!cart[id];
     var div = document.createElement('div');
     div.className = 'part-item' + (inCart ? ' in-cart' : '');
-    var s = p.stock;
-    var badge = '<span class="stock-badge' + (s === 0 ? ' zr' : s <= 2 ? ' lw' : '') + '">' +
-      (s === 0 ? '⛔' : s <= 2 ? '⚠️' : '✅') + ' ' + s + '個</span>';
-    div.innerHTML =
-      '<div class="part-info">' +
-        '<div class="part-name">' + esc(p.item) + '</div>' +
-        '<div class="part-sub">' + esc(p.desc || '') + (p.spec ? ' / ' + esc(p.spec) : '') + '</div>' +
-        '<div class="part-id">' + esc(id) + '</div>' +
-      '</div>' + badge;
+    var st = p.stock;
+    var badge = '<span class="stock-badge' + (st === 0 ? ' zr' : st <= 2 ? ' lw' : '') + '">' +
+      (st === 0 ? '⛔' : st <= 2 ? '⚠️' : '✅') + ' ' + st + '個</span>';
+    div.innerHTML = '<div class="part-info">' +
+      '<div class="part-name">' + esc(p.item) + '</div>' +
+      '<div class="part-sub">' + esc(p.desc || '') + (p.spec ? ' / ' + esc(p.spec) : '') + (p.shelf ? ' / 棚: ' + esc(p.shelf) : '') + '</div>' +
+      '<div class="part-id">' + esc(id) + '</div></div>' + badge;
     div.onclick = function() { addToCart(prefix, id); };
     el.appendChild(div);
   });
@@ -1091,29 +1120,32 @@ function addToCart(prefix, id) {
 
 function coGoStep2() {
   if (Object.keys(coCart).length === 0) { showToast('部品を選択してください', 'wn'); return; }
-  var shelfMode = config.shelfMode;
   document.getElementById('co-sn1').classList.add('step-done');
   document.getElementById('co-step1').style.display = 'none';
   document.getElementById('co-cart-btn').className = 'cart-badge';
-
-  if (shelfMode === 'off') {
-    // 棚なしでStep3へ
-    coShelf = '';
-    showCoStep3();
-  } else {
-    document.getElementById('co-step2').style.display = '';
-  }
+  showCoStep3();
 }
 
 function coSkipShelf() { coShelf = ''; showCoStep3(); }
 
 function doManualShelf(prefix) {
   var idx = prefix === 'co' ? '2' : prefix === 'rt' ? '3' : prefix === 'rg' ? '4' : '5';
-  var val  = document.getElementById('manualInput' + idx).value.trim();
-  if (prefix === 'co') { coShelf = val; showCoStep3(); }
-  else if (prefix === 'rt') { rtShelf = val; showRtStep3(); }
-  else if (prefix === 'rg') { rgShelf = val; showRgConfirm(); }
-  else if (prefix === 'iv') { ivShelf = val; ivLoadItems(); }
+  var val = document.getElementById('manualInput' + idx).value.trim();
+  var parsed = parseQRValue(val);
+  var id = parsed.id;
+  if (!id) { showToast('値を入力してください', 'wn'); return; }
+  if (prefix === 'co') {
+    if (config.qrMode === 'item') { addItemQrToCart('co', parsed); return; }
+    coShelf = id;
+    if (config.qrMode === 'shelf' && Object.keys(coCart).length === 0) { showShelfPartSelect('co'); return; }
+    showCoStep3();
+  } else if (prefix === 'rt') {
+    if (config.qrMode === 'item') { addItemQrToCart('rt', parsed); return; }
+    rtShelf = id;
+    if (config.qrMode === 'shelf' && Object.keys(rtCart).length === 0) { showShelfPartSelect('rt'); return; }
+    showRtStep3();
+  } else if (prefix === 'rg') { rgShelf = id; showRgConfirm(); }
+  else if (prefix === 'iv') { ivShelf = id; ivLoadItems(); }
 }
 
 function showCoStep3() {
@@ -1194,7 +1226,7 @@ function doCheckout() {
   var items = Object.keys(coCart).map(function(id) { return { itemId: id, qty: coCart[id] }; });
   fetch(GAS, { method: 'POST', body: JSON.stringify({
     action: 'checkout', name: coName, shelf: coShelf,
-    shelfMode: config.shelfMode, items: items
+    shelfMode: movementShelfMode(), items: items
   })}).then(function(r){ return r.json(); }).then(function(j) {
     if (j.status === 'ok') {
       var errs = j.results.filter(function(r){ return r.status === 'error'; });
@@ -1226,9 +1258,17 @@ function initRt() {
   document.getElementById('rt-exec').className = 'exec-btn';
   document.getElementById('rt-cart-btn').className = 'cart-badge';
   document.getElementById('rt-err').className = 'err';
+  document.getElementById('rt-shelf-err').className = 'err';
   document.getElementById('rt-sn1').className = 'step-num';
   document.getElementById('rt-sn2').className = 'step-num';
   document.getElementById('rt-sn3').className = 'step-num';
+  setMoveModeUI('rt');
+  if (config.qrMode === 'shelf') {
+    document.getElementById('rt-step1').style.display = 'none';
+    document.getElementById('rt-step2').style.display = '';
+    return;
+  }
+  if (config.qrMode === 'item') document.getElementById('rt-step2').style.display = '';
   renderPartList('rt');
 }
 
@@ -1237,8 +1277,7 @@ function rtGoStep2() {
   document.getElementById('rt-sn1').classList.add('step-done');
   document.getElementById('rt-step1').style.display = 'none';
   document.getElementById('rt-cart-btn').className = 'cart-badge';
-  if (config.shelfMode === 'off') { rtShelf = ''; showRtStep3(); }
-  else document.getElementById('rt-step2').style.display = '';
+  showRtStep3();
 }
 
 function rtSkipShelf() { rtShelf = ''; showRtStep3(); }
@@ -1292,7 +1331,7 @@ function doReturn() {
   var items = Object.keys(rtCart).map(function(id){ return { itemId: id, qty: rtCart[id] }; });
   fetch(GAS, { method: 'POST', body: JSON.stringify({
     action: 'return', name: rtName, shelf: rtShelf,
-    shelfMode: config.shelfMode, items: items
+    shelfMode: movementShelfMode(), items: items
   })}).then(function(r){ return r.json(); }).then(function(j) {
     if (j.status === 'ok') {
       var errs = j.results.filter(function(r){ return r.status === 'error'; });
@@ -1454,6 +1493,8 @@ function initIv() {
     document.getElementById(id).style.display = i===0?'':'none';
   });
   document.getElementById('iv-exec').className = 'exec-btn';
+  document.getElementById('iv-exec').textContent = '✅ 棚卸しを記録する';
+  document.getElementById('iv-exec').onclick = doInventory;
   document.getElementById('iv-err').className = 'err';
   for (var i=1;i<=4;i++) document.getElementById('iv-sn'+i).className='step-num';
   setupShelfStep('iv');
@@ -1470,8 +1511,10 @@ function ivLoadItems() {
   document.getElementById('iv-step1').style.display = 'none';
   document.getElementById('iv-step2').style.display = '';
 
-  // マスタから全部品を取得（棚番号フィルターなし）
-  ivItems = Object.keys(master).map(function(id) {
+  // 棚QR管理では読み取った棚だけ、その他は全部品を対象にする
+  ivItems = Object.keys(master).filter(function(id) {
+    return !(config.qrMode === 'shelf' && ivShelf) || master[id].shelf === ivShelf;
+  }).map(function(id) {
     return { id: id, item: master[id].item, desc: master[id].desc, spec: master[id].spec, systemStock: master[id].stock, actualStock: master[id].stock };
   });
 
@@ -1569,18 +1612,47 @@ function submitInventory() {
 // QR発行
 // ============================================================
 function loadQRList() {
-  if (!GAS) { document.getElementById('qr-list').innerHTML = '<div style="color:var(--ng);text-align:center;padding:20px">GAS URLが未設定です</div>'; return; }
-  document.getElementById('qr-list').innerHTML = '<div style="color:var(--mt);font-size:13px;text-align:center;padding:20px">読み込み中...</div>';
+  var list = document.getElementById('qr-list');
+  var title = document.getElementById('qr-title');
+  var search = document.getElementById('qr-search');
+  var bulkBtn = document.getElementById('bulkIssueBtn');
+
+  if (config.qrMode === 'none') {
+    title.textContent = '🏷️ QR発行は無効です';
+    search.style.display = 'none';
+    bulkBtn.style.display = 'none';
+    list.innerHTML = '<div style="color:var(--mt);text-align:center;padding:20px">設定でQRを使わないになっています</div>';
+    return;
+  }
+
+  search.style.display = '';
+  if (config.qrMode === 'shelf') {
+    title.textContent = '🏬 棚QR一覧';
+    search.placeholder = '棚番号で絞り込み';
+    bulkBtn.style.display = 'none';
+    allItems = config.shelves.map(function(s, i) { return { row: i + 1, id: s, item: s, desc: '棚番号', spec: '', type: 'shelf' }; });
+    filteredItems = allItems;
+    renderQRList(filteredItems);
+    return;
+  }
+
+  if (!GAS) { list.innerHTML = '<div style="color:var(--ng);text-align:center;padding:20px">GAS URLが未設定です</div>'; return; }
+  title.textContent = '🏷️ 部品QR一覧';
+  search.placeholder = '品番・品名・規格で絞り込み';
+  bulkBtn.style.display = '';
+  list.innerHTML = '<div style="color:var(--mt);font-size:13px;text-align:center;padding:20px">読み込み中...</div>';
   fetch(GAS + '?action=getAllItems').then(function(r){ return r.json(); }).then(function(j) {
     allItems = j.items || [];
     filteredItems = allItems;
     renderQRList(filteredItems);
-  }).catch(function(){ document.getElementById('qr-list').innerHTML = '<div style="color:var(--ng);text-align:center;padding:20px">読み込み失敗</div>'; });
+  }).catch(function(){ list.innerHTML = '<div style="color:var(--ng);text-align:center;padding:20px">読み込み失敗</div>'; });
 }
 
 function filterQR() {
   var kw = document.getElementById('qr-search').value.trim().toLowerCase();
-  filteredItems = allItems.filter(function(it){ return !kw || (it.item + it.desc + it.spec).toLowerCase().indexOf(kw) >= 0; });
+  filteredItems = allItems.filter(function(it){
+    return !kw || ((it.item || '') + (it.desc || '') + (it.spec || '') + (it.id || '')).toLowerCase().indexOf(kw) >= 0;
+  });
   renderQRList(filteredItems);
 }
 
@@ -1595,11 +1667,13 @@ function renderQRList(items) {
     qrWrap.appendChild(canvas);
     var info    = document.createElement('div'); info.className = 'qr-info';
     var hasId   = !!it.id;
-    info.innerHTML =
+    var isShelf = config.qrMode === 'shelf' || it.type === 'shelf';
+    info.innerHTML = isShelf ?
+      '<div class="qr-item">' + esc(it.id || it.item) + '</div><div class="qr-sub">棚番号</div><div class="qr-id">SHELF:' + esc(it.id || it.item) + '</div>' :
       '<div class="qr-item">' + esc(it.item) + (hasId ? '' : '<span class="badge-new">未発行</span>') + '</div>' +
       '<div class="qr-sub">' + esc(it.desc||'') + (it.spec ? ' / ' + esc(it.spec) : '') + '</div>' +
-      (hasId ? '<div class="qr-id">' + esc(it.id) + '</div>' : '<div class="qr-no-id">管理番号未発行</div>');
-    if (!hasId) {
+      (hasId ? '<div class="qr-id">ITEM:' + esc(it.id) + '</div>' : '<div class="qr-no-id">管理番号未発行</div>');
+    if (!isShelf && !hasId) {
       var issueBtn = document.createElement('button');
       issueBtn.className = 'gbtn wn no-print';
       issueBtn.style.cssText = 'margin-top:8px;padding:8px;font-size:12px;';
@@ -1610,7 +1684,8 @@ function renderQRList(items) {
     card.appendChild(qrWrap); card.appendChild(info);
     list.appendChild(card);
     if (hasId) {
-      QRCode.toCanvas(canvas, it.id, { width: 90, margin: 1, color: { dark: '#000', light: '#fff' } }, function(){});
+      var qrValue = isShelf ? 'SHELF:' + it.id : 'ITEM:' + it.id;
+      QRCode.toCanvas(canvas, qrValue, { width: 90, margin: 1, color: { dark: '#000', light: '#fff' } }, function(){});
     } else {
       var ctx = canvas.getContext('2d');
       ctx.fillStyle = '#1c2038'; ctx.fillRect(0,0,90,90);
@@ -1649,6 +1724,83 @@ function fetchMaster() {
   fetch(GAS + '?action=getMaster').then(function(r){ return r.json(); }).then(function(j){
     master = j.master || {};
   }).catch(function(){});
+}
+
+function parseQRValue(value) {
+  var raw = String(value || '').trim();
+  var m = raw.match(/^([A-Z]+):(.+)$/);
+  if (!m) return { type: '', id: raw, raw: raw };
+  return { type: m[1].toLowerCase(), id: m[2].trim(), raw: raw };
+}
+
+function movementShelfMode() {
+  return config.qrMode === 'shelf' ? 'full' : 'off';
+}
+
+function setMoveModeUI(prefix) {
+  var isCo = prefix === 'co';
+  var step1 = document.getElementById(prefix + '-step1');
+  var step2 = document.getElementById(prefix + '-step2');
+  var lbl1 = step1.querySelector('.lbl');
+  var lbl2 = step2.querySelector('.lbl span:last-child');
+  var scanBtn = document.getElementById(isCo ? 'scanBtn2' : 'scanBtn3');
+  var manualArea = document.getElementById(isCo ? 'manualArea2' : 'manualArea3');
+  var manualInput = document.getElementById(isCo ? 'manualInput2' : 'manualInput3');
+  var manualBtn = manualArea.querySelector('button');
+  var skipBtn = document.getElementById(prefix + '-skip-shelf');
+  var search = document.getElementById(prefix + '-search');
+  var note = document.getElementById(prefix + '-mode-note');
+  note.className = 'notice';
+  scanBtn.style.display = '';
+  manualArea.style.display = 'none';
+  skipBtn.style.display = 'none';
+  if (config.qrMode === 'shelf') {
+    document.getElementById(prefix + '-sn2').textContent = '1';
+    lbl2.textContent = '棚QRをスキャン';
+    scanBtn.setAttribute('onclick', "toggleCam('" + (isCo ? 'cam2' : 'cam3') + "','" + prefix + "')");
+    manualInput.placeholder = '棚番号を入力';
+    manualBtn.textContent = '✔ この棚番号で進む';
+    lbl1.innerHTML = '<span class="step-num" id="' + prefix + '-sn1">2</span>棚内の部品を選択';
+    search.placeholder = 'この棚の部品を絞り込み';
+    note.textContent = '棚QRを読むと、その棚に登録された部品だけ表示します。';
+    note.className = 'notice on';
+  } else if (config.qrMode === 'item') {
+    document.getElementById(prefix + '-sn2').textContent = '1';
+    lbl2.textContent = '部品QRをスキャン';
+    scanBtn.setAttribute('onclick', "toggleCam('" + (isCo ? 'cam2' : 'cam3') + "','" + prefix + "')");
+    manualInput.placeholder = '管理番号を入力（例：ITEM-001）';
+    manualBtn.textContent = '✔ この部品を追加';
+    lbl1.innerHTML = '<span class="step-num" id="' + prefix + '-sn1">2</span>検索で追加（任意）';
+    search.placeholder = '品番・品名・規格で検索';
+    note.textContent = '部品QRを読むとカートに追加します。検索からの追加もできます。';
+    note.className = 'notice on';
+  } else {
+    document.getElementById(prefix + '-sn2').textContent = '2';
+    lbl1.innerHTML = '<span class="step-num" id="' + prefix + '-sn1">1</span>' + (isCo ? '部品を選択して個数を入力' : '返却する部品を選択');
+    search.placeholder = '品番・品名・規格で検索';
+    scanBtn.style.display = 'none';
+  }
+}
+
+function showShelfPartSelect(prefix) {
+  stopCam(prefix === 'co' ? 'cam2' : 'cam3');
+  document.getElementById(prefix + '-step2').style.display = 'none';
+  document.getElementById(prefix + '-step1').style.display = '';
+  document.getElementById(prefix + '-sn2').classList.add('step-done');
+  renderPartList(prefix);
+}
+
+function addItemQrToCart(prefix, parsed) {
+  if (parsed.type && parsed.type !== 'item') {
+    showToast('部品QRをスキャンしてください', 'wn');
+    return;
+  }
+  if (!master[parsed.id]) {
+    showToast('部品が見つかりません: ' + parsed.id, 'er');
+    return;
+  }
+  addToCart(prefix, parsed.id);
+  renderPartList(prefix);
 }
 
 // ============================================================
@@ -1759,37 +1911,39 @@ function startDecode(camKey, ctx) {
 function onScanned(camKey, ctx, value) {
   stopCam(camKey);
   if (navigator.vibrate) navigator.vibrate(60);
+  var parsed = parseQRValue(value);
+  var scanId = parsed.id;
 
   if (ctx === 'rg') {
     // 新規登録：部品バーコード確認モーダル
-    var part = master[value];
-    pendingScan = { ctx: 'rg', id: value, camKey: camKey };
+    var part = master[scanId];
+    pendingScan = { ctx: 'rg', id: scanId, camKey: camKey };
     document.getElementById('cfItem').textContent = part ? part.item : '（未登録）';
-    document.getElementById('cfDesc').textContent = part && part.desc ? part.desc : value;
+    document.getElementById('cfDesc').textContent = part && part.desc ? part.desc : scanId;
     document.getElementById('cfSpec').textContent = part && part.spec ? '規格: ' + part.spec : '';
     document.getElementById('cfId').textContent   = value;
     document.getElementById('confirmOv').classList.add('on');
   } else if (ctx === 'co') {
-    // 持ち出し：棚スキャン
-    coShelf = value;
-    if (config.shelfMode === 'scanOnly') {
-      showToast('✅ 棚をスキャンしました: ' + value, 'ok');
-      showCoStep3();
-    } else {
-      showToast('✅ 棚をスキャンしました: ' + value, 'ok');
-      showCoStep3();
-    }
+    if (config.qrMode === 'item') { addItemQrToCart('co', parsed); return; }
+    if (parsed.type && parsed.type !== 'shelf') { showToast('棚QRをスキャンしてください', 'wn'); return; }
+    coShelf = scanId;
+    showToast('✅ 棚をスキャンしました: ' + scanId, 'ok');
+    if (config.qrMode === 'shelf' && Object.keys(coCart).length === 0) showShelfPartSelect('co');
+    else showCoStep3();
   } else if (ctx === 'rt') {
-    rtShelf = value;
-    showToast('✅ 棚をスキャンしました: ' + value, 'ok');
-    showRtStep3();
+    if (config.qrMode === 'item') { addItemQrToCart('rt', parsed); return; }
+    if (parsed.type && parsed.type !== 'shelf') { showToast('棚QRをスキャンしてください', 'wn'); return; }
+    rtShelf = scanId;
+    showToast('✅ 棚をスキャンしました: ' + scanId, 'ok');
+    if (config.qrMode === 'shelf' && Object.keys(rtCart).length === 0) showShelfPartSelect('rt');
+    else showRtStep3();
   } else if (ctx === 'rg-shelf') {
-    rgShelf = value;
-    showToast('✅ 棚をスキャンしました: ' + value, 'ok');
+    rgShelf = scanId;
+    showToast('✅ 棚をスキャンしました: ' + scanId, 'ok');
     showRgConfirm();
   } else if (ctx === 'iv-shelf') {
-    ivShelf = value;
-    showToast('✅ 棚をスキャンしました: ' + value, 'ok');
+    ivShelf = scanId;
+    showToast('✅ 棚をスキャンしました: ' + scanId, 'ok');
     ivLoadItems();
   }
 }
@@ -1811,6 +1965,7 @@ function proceedConfirm() {
 // 設定
 // ============================================================
 var gearShelfMode = 'off';
+var gearQrMode = 'item';
 
 function openGear() {
   document.getElementById('cfg-url').value   = GAS;
@@ -1826,7 +1981,10 @@ function openGear() {
   document.getElementById('cfg-use-device').checked = config.useDevice;
   document.getElementById('cfg-devices-area').style.display = config.useDevice ? '' : 'none';
   document.getElementById('cfg-use-inv').checked = config.useInventory;
-  document.getElementById('cfg-use-qr').checked  = config.useQR;
+  gearQrMode = config.qrMode;
+  document.querySelectorAll('#cfg-qr-mode button').forEach(function(b){
+    b.className = 'shelf-mode-btn' + (b.getAttribute('data-mode') === gearQrMode ? ' sel' : '');
+  });
   document.getElementById('cfgWarn').className = GAS ? 'cfg-warn' : 'cfg-warn on';
   // トグルイベント
   document.getElementById('cfg-use-device').onchange = function() {
@@ -1843,6 +2001,13 @@ function selShelfMode(mode) {
   document.getElementById('cfg-shelves-area').style.display = mode !== 'off' ? '' : 'none';
 }
 
+function selQrMode(mode) {
+  gearQrMode = mode;
+  document.querySelectorAll('#cfg-qr-mode button').forEach(function(b){
+    b.className = 'shelf-mode-btn' + (b.getAttribute('data-mode') === mode ? ' sel' : '');
+  });
+}
+
 function closeGear() { document.getElementById('ov').classList.remove('on'); }
 
 function saveGear() {
@@ -1854,18 +2019,17 @@ function saveGear() {
   var devices = document.getElementById('cfg-devices').value.trim();
   var useDevice = document.getElementById('cfg-use-device').checked;
   var useInv    = document.getElementById('cfg-use-inv').checked;
-  var useQR     = document.getElementById('cfg-use-qr').checked;
   var devArr  = devices.split(',').map(trim).filter(Boolean);
   if (useDevice && !devArr.includes('不明')) devArr.push('不明');
   setLd(true, '設定を保存中...');
   fetch(GAS, { method: 'POST', body: JSON.stringify({
     action: 'saveConfig', names: names, shelves: shelves,
     devices: devArr.join(','), shelfMode: gearShelfMode,
-    useDevice: String(useDevice), useInventory: String(useInv), useQR: String(useQR)
+    useDevice: String(useDevice), useInventory: String(useInv), qrMode: gearQrMode
   })}).then(function(r){ return r.json(); }).then(function(j) {
     if (j.status === 'ok') {
       applyConfig({ names, shelves, devices: devArr.join(','), shelfMode: gearShelfMode,
-        useDevice: String(useDevice), useInventory: String(useInv), useQR: String(useQR) });
+        useDevice: String(useDevice), useInventory: String(useInv), qrMode: gearQrMode });
       applyUIConfig(); buildNameBtns(); buildDevBtns();
       closeGear(); showToast('✅ 設定を保存しました', 'ok');
     } else showToast('❌ 保存失敗', 'er');
@@ -1876,7 +2040,7 @@ function saveGear() {
 // ============================================================
 // ウィザード
 // ============================================================
-var wizShelfMode = '';
+var wizQrMode = '';
 var wizUseDevice = '';
 
 function showWizard() {
@@ -1934,20 +2098,21 @@ function wizBack(step) {
   else if (step === 2) wizSetStep(1);
   else if (step === 3) wizSetStep(2);
   else if (step === 4) {
-    if (wizShelfMode !== 'off') wizSetStep(3); else wizSetStep(2);
+    if (wizQrMode === 'shelf') wizSetStep(3); else wizSetStep(2);
   }
   else if (step === 5) wizSetStep(4);
 }
 
-function wizSelShelf(mode) {
-  wizShelfMode = mode;
-  wizState.shelfMode = mode;
+function wizSelQrMode(mode) {
+  wizQrMode = mode;
+  wizState.qrMode = mode;
+  wizState.shelfMode = mode === 'shelf' ? 'full' : 'off';
   document.querySelectorAll('#ws2 .wiz-option').forEach(function(el) {
     el.className = 'wiz-option' + (el.getAttribute('data-val') === mode ? ' sel' : '');
   });
   setTimeout(function() {
-    if (mode === 'off') { wizState.shelves = ''; wizSetStep(4); }
-    else wizSetStep(3);
+    if (mode === 'shelf') wizSetStep(3);
+    else { wizState.shelves = ''; wizSetStep(4); }
   }, 200);
 }
 
@@ -1979,10 +2144,10 @@ function wizFinish() {
     names:        wizState.names,
     shelves:      wizState.shelves || '',
     devices:      devArr.join(','),
-    shelfMode:    wizState.shelfMode || 'off',
+    shelfMode:    wizState.shelfMode || (wizState.qrMode === 'shelf' ? 'full' : 'off'),
     useDevice:    wizState.useDevice || 'false',
     useInventory: 'true',
-    useQR:        'true',
+    qrMode:       wizState.qrMode || 'item',
   })}).then(function(r){ return r.json(); }).then(function(j) {
     if (j.status === 'ok') {
       document.getElementById('wiz-done-sub').textContent = '設定が完了しました。アプリを起動します...';

@@ -299,7 +299,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 <div class="hdr">
   <span class="hdr-logo">📦</span>
   <span class="hdr-title">ストックマネージャー</span>
-  <span class="hdr-ver">v4.0</span>
+  <span class="hdr-ver">v5.0</span>
   <div class="dot" id="dot"></div>
   <button class="gear-btn" onclick="openGear()">⚙️</button>
 </div>
@@ -580,6 +580,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <div class="cfg-warn on" id="cfgWarn">※ GAS URLが未設定です。設定してください。</div>
 
     <button class="gbtn gray" onclick="testConnectionFromGear()">🔍 接続テスト</button>
+    <button class="gbtn gray" onclick="copyUserUrl()">🔗 利用者用URLをコピー</button>
     <div class="err" id="cfgDiag"></div>
 
     <div class="sec-lbl">担当者</div>
@@ -799,6 +800,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 // グローバル状態
 // ============================================================
 var GAS = localStorage.getItem('gasUrl') || '';
+var USER_ROLE = localStorage.getItem('userRole') || 'admin';
 var config = {
   names: [], shelves: [], devices: [],
   shelfMode: 'off', useDevice: false,
@@ -837,6 +839,8 @@ var wizState = {
 // 初期化
 // ============================================================
 window.onload = function() {
+  applyUrlParams();
+  applyRoleUI();
   if (!GAS) {
     showWizard();
   } else {
@@ -854,6 +858,7 @@ function init() {
     master = res[1].master || {};
     document.getElementById('dot').className = 'dot';
     applyUIConfig();
+    applyRoleUI();
     buildNameBtns();
     buildDevBtns();
   }).catch(function() {
@@ -969,6 +974,65 @@ function setupShelfStep(prefix) {
     if (scanBtn) scanBtn.style.display = 'none';
     if (manualArea) manualArea.style.display = '';
   }
+}
+
+// ============================================================
+// URLパラメータ・権限
+// ============================================================
+function applyUrlParams() {
+  var params = new URLSearchParams(window.location.search || '');
+  var gasParam = params.get('gas');
+  var roleParam = params.get('role');
+  if (gasParam) {
+    GAS = gasParam.trim();
+    localStorage.setItem('gasUrl', GAS);
+  }
+  if (roleParam) {
+    USER_ROLE = roleParam === 'user' ? 'user' : 'admin';
+    localStorage.setItem('userRole', USER_ROLE);
+  } else {
+    USER_ROLE = localStorage.getItem('userRole') || 'admin';
+  }
+}
+
+function isUserRole() {
+  return USER_ROLE === 'user';
+}
+
+function applyRoleUI() {
+  var gear = document.querySelector('.gear-btn');
+  if (gear) gear.style.display = isUserRole() ? 'none' : '';
+}
+
+function buildUserUrl(url) {
+  url = normalizeGasUrl(url || GAS);
+  if (!url) return '';
+  return window.location.origin + window.location.pathname + '?gas=' + encodeURIComponent(url) + '&role=user';
+}
+
+function copyUserUrl() {
+  var url = document.getElementById('cfg-url').value.trim() || GAS;
+  if (!url) { showToast('GAS URLを入力してください', 'wn'); return; }
+  var userUrl = buildUserUrl(url);
+  function done() { showToast('利用者用URLをコピーしました', 'ok'); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(userUrl).then(done).catch(function(){ fallbackCopy(userUrl); });
+  } else {
+    fallbackCopy(userUrl);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); showToast('利用者用URLをコピーしました', 'ok'); }
+  catch(e) { showToast('コピーできませんでした', 'er'); }
+  document.body.removeChild(ta);
 }
 
 // ============================================================
@@ -2016,6 +2080,7 @@ function selQrMode(mode) {
 function closeGear() { document.getElementById('ov').classList.remove('on'); }
 
 function saveGear() {
+  if (isUserRole()) { showToast('利用者権限では設定を変更できません', 'er'); return; }
   var url = document.getElementById('cfg-url').value.trim();
   if (!url) { alert('GAS URLを入力してください'); return; }
   GAS = url; localStorage.setItem('gasUrl', url);
@@ -2030,7 +2095,8 @@ function saveGear() {
   fetch(GAS, { method: 'POST', body: JSON.stringify({
     action: 'saveConfig', names: names, shelves: shelves,
     devices: devArr.join(','), shelfMode: gearShelfMode,
-    useDevice: String(useDevice), useInventory: String(useInv), qrMode: gearQrMode
+    useDevice: String(useDevice), useInventory: String(useInv), qrMode: gearQrMode,
+    role: USER_ROLE
   })}).then(function(r){ return r.json(); }).then(function(j) {
     if (j.status === 'ok') {
       applyConfig({ names, shelves, devices: devArr.join(','), shelfMode: gearShelfMode,
@@ -2162,6 +2228,7 @@ function wizFinish() {
       useDevice:    wizState.useDevice || 'false',
       useInventory: 'true',
       qrMode:       wizState.qrMode || 'item',
+      role:         USER_ROLE || 'admin',
     })}).then(function(r){ return r.json(); }).then(function(j) {
       if (j.status === 'ok') {
         document.getElementById('wiz-done-sub').textContent = '設定が完了しました。アプリを起動します...';

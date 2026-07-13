@@ -883,7 +883,7 @@ function applyConfig(cfg) {
 function applyUIConfig() {
   // ホームボタン
   document.getElementById('homeIvBtn').style.display = config.useInventory ? '' : 'none';
-  var qrEnabled = config.qrMode !== 'none';
+  var qrEnabled = config.qrMode !== 'none' && !isUserRole();
   document.getElementById('homeQrBtn').style.display = qrEnabled ? '' : 'none';
   document.getElementById('homeQrLbl').textContent = config.qrMode === 'shelf' ? '棚QR発行' : '部品QR発行';
 
@@ -1683,6 +1683,14 @@ function loadQRList() {
   var title = document.getElementById('qr-title');
   var search = document.getElementById('qr-search');
   var bulkBtn = document.getElementById('bulkIssueBtn');
+
+  if (isUserRole()) {
+    title.textContent = '🏷️ QR発行は利用できません';
+    search.style.display = 'none';
+    bulkBtn.style.display = 'none';
+    list.innerHTML = '<div style="color:var(--ng);text-align:center;padding:20px">この機能は管理者のみ利用できます</div>';
+    return;
+  }
 
   if (config.qrMode === 'none') {
     title.textContent = '🏷️ QR発行は無効です';
